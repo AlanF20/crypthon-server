@@ -44,7 +44,8 @@ def hello_crypto():
 
 
 @crypto.route("/add_crypto", methods=["GET", "POST"])
-def add_crypto():
+@tokenCheck
+def add_crypto(usuario):
     form = CryptoForm()
     response = {}
     if request.method == "POST":
@@ -66,7 +67,8 @@ def add_crypto():
 
 
 @crypto.route("/cryptocurrencies", methods=["GET"])
-def get_all_cryptocurrencies():
+@tokenCheck
+def get_all_cryptocurrencies(usuario):
     cryptocurrencies = CryptoCurrency.query.all()
 
     serialized_cryptos = [crypto.serialize() for crypto in cryptocurrencies]
@@ -75,7 +77,8 @@ def get_all_cryptocurrencies():
 
 
 @crypto.route("/edit_crypto/<int:crypto_id>", methods=["PUT"])
-def edit_crypto(crypto_id):
+@tokenCheck
+def edit_crypto(usuario, crypto_id):
     crypto = CryptoCurrency.query.get_or_404(crypto_id)
 
     if request.method == "PUT":
@@ -98,7 +101,8 @@ def edit_crypto(crypto_id):
 
 
 @crypto.route("/delete_crypto/<int:crypto_id>", methods=["DELETE"])
-def delete_crypto(crypto_id):
+@tokenCheck
+def delete_crypto(usuario, crypto_id):
     crypto = CryptoCurrency.query.get_or_404(crypto_id)
 
     db.session.delete(crypto)
@@ -209,10 +213,15 @@ def buy_crypto():
     if total_cost > user.money_balance:
         return jsonify({"error": "Fondos insuficientes"}), 400
 
-    user.money_balance += total_cost
+    user.money_balance -= total_cost
 
-    wallet_entry = Wallet(user_id=user_id, crypto_id=crypto_id, quantity=quantity)
-    db.session.add(wallet_entry)
+    wallet_entry = Wallet.query.filter_by(user_id=user_id, crypto_id=crypto_id).first()
+
+    if wallet_entry:
+        wallet_entry.quantity += quantity
+    else:
+        wallet_entry = Wallet(user_id=user_id, crypto_id=crypto_id, quantity=quantity)
+        db.session.add(wallet_entry)
 
     transaction = Transaction(user_id=user_id, crypto_id=crypto_id, amount=quantity)
     db.session.add(transaction)
@@ -257,7 +266,8 @@ def export_transactions_csv():
 
 
 @crypto.route("/wallet/<int:user_id>", methods=["GET"])
-def get_wallet(user_id):
+@tokenCheck
+def get_wallet(usuario, user_id):
     try:
         wallets = Wallet.query.filter_by(user_id=user_id).all()
 
@@ -279,7 +289,7 @@ def get_wallet(user_id):
                     "cryptoPrice": crypto.cryptoPrice,
                     "cryptoSymbol": crypto.cryptoSymbol,
                     "coinIncrement": crypto.coinIncrement,
-                    "cryptoImg": crypto.cryptoImg
+                    "cryptoImg": crypto.cryptoImg,
                 }
             wallet_data.append(data)
 

@@ -31,7 +31,6 @@ def edit_user(user_id):
         return jsonify({"error": "Usuario no encontrado"}), 404
     data = request.get_json()
 
-    # Actualizar campos del usuario
     if "first_name" in data:
         user_to_edit.first_name = data["first_name"]
     if "last_name" in data:
@@ -39,7 +38,6 @@ def edit_user(user_id):
     if "email" in data:
         user_to_edit.email = data["email"]
 
-    # Guardar cambios en la base de datos
     db.session.commit()
 
     return jsonify({"message": "Usuario actualizado correctamente"}), 200
